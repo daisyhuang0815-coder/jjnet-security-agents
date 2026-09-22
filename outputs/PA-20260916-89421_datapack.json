@@ -1,0 +1,353 @@
+{
+  "success": true,
+  "data": {
+    "incidentId": "PA-20260916-89421",
+    "customerName": "JJNET Demo Customer",
+    "title": "Microsoft Windows Task Scheduler Privilege Escalation",
+    "severity": "Critical",
+    "riskScore": 92,
+    "detectionTime": "2026-09-16T22:14:10Z",
+    "reportVersion": "1.0",
+    "eventType": "惡意弱點探測 / 無檔案記憶體程式碼注入",
+    "executiveSummary": "Palo Alto 防火牆與 Cortex XDR 於 2026-09-16T22:14:10Z - 2026-09-16T22:16:01Z 期間，偵測到來自外部惡意來源 (185.220.101.5) 針對內部 DMZ 主機 (WS-FIN-088.corp.jjnet.tw) 發動之 Microsoft Windows Task Scheduler Privilege Escalation (觸發次數：14 次連續探測)。攻擊者嘗試利用弱點 CVE-2026-3841 與混淆 PowerShell 腳本突破邊界防護並實施記憶體注入。周邊安全規則「SecRule-Inbound-DMZ-Protect」及時觸發並執行「reset-both」，端點代理已自動完成邏輯網路隔離並保全揮發性記憶體跡證。目前現有事證支持威脅已獲有效圍堵，後續憑證可能於其他主機重用之風險仍列入待確認追蹤項。",
+    "classification": [
+      {
+        "label": "Category",
+        "value": "Persistence / Exploit (惡意弱點利用與持久化探測)"
+      },
+      {
+        "label": "Status",
+        "value": "Contained (已完成端點網路隔離與邊界阻斷)"
+      },
+      {
+        "label": "Confidence",
+        "value": "High (威脅情資與日誌特徵雙向核實吻合)"
+      }
+    ],
+    "affectedAssets": [
+      {
+        "name": "WS-FIN-088.corp.jjnet.tw",
+        "context": "財務部關鍵同仁端點 (corp.jjnet.tw)"
+      },
+      {
+        "name": "SecRule-Inbound-DMZ-Protect",
+        "context": "外網對 DMZ 邊界防護次世代防火牆閘道"
+      }
+    ],
+    "mitreTechniques": [
+      {
+        "id": "T1059.001",
+        "name": "Command and Scripting Interpreter: PowerShell"
+      },
+      {
+        "id": "T1055",
+        "name": "Process Injection"
+      },
+      {
+        "id": "T1003.001",
+        "name": "OS Credential Dumping: LSASS Memory"
+      },
+      {
+        "id": "T1566.001",
+        "name": "Phishing: Spearphishing Attachment"
+      }
+    ],
+    "evidence": [
+      {
+        "time": "22:14:10",
+        "source": "Palo Alto Firewall",
+        "observation": "邊界防火牆攔截惡意探測：WINWORD.EXE (PID: 4312) 觸發 powershell.exe 混淆 Base64 腳本執行，並對 svchost.exe (PID: 6720) 實施代碼注入"
+      },
+      {
+        "time": "22:15:30",
+        "source": "Cortex XDR Agent",
+        "observation": "WINWORD.EXE (PID: 4312) 觸發混淆 PowerShell 執行，對 svchost.exe (PID: 6720) 實施代碼注入"
+      },
+      {
+        "time": "22:15:45",
+        "source": "Palo Alto Threat Prevention",
+        "observation": "企圖向外部 C2 連線 (c2-update.secureserv.nl)，遭防火牆重設阻斷"
+      },
+      {
+        "time": "22:16:01",
+        "source": "Cortex XDR Containment",
+        "observation": "偵測到 Mimikatz 記憶體特徵碼，端點自動執行邏輯網路隔離並保全證據鏈"
+      }
+    ],
+    "timeline": [
+      {
+        "time": "22:14:10",
+        "event": "外部 IP 185.220.101.5 對內部目標發起惡意 HTTP POST 探測",
+        "source": "Palo Alto Firewall"
+      },
+      {
+        "time": "22:15:30",
+        "event": "WINWORD.EXE 觸發混淆 PowerShell 執行，嘗試記憶體代碼注入",
+        "source": "Cortex XDR Agent"
+      },
+      {
+        "time": "22:15:45",
+        "event": "企圖向外部 c2-update.secureserv.nl 建立 C2 連線 (已被防火牆攔截)",
+        "source": "Palo Alto Threat Prevention"
+      },
+      {
+        "time": "22:16:01",
+        "event": "端點代理判定高危，自動執行邏輯網路隔離並鎖定排程",
+        "source": "Cortex XDR Containment"
+      }
+    ],
+    "responseActions": [
+      {
+        "number": 1,
+        "action": "維持受感染主機 WS-FIN-088.corp.jjnet.tw 之 EDR 邏輯網路隔離，保全 Volatile Memory Dump 供鑑識",
+        "status": "Completed / in progress"
+      },
+      {
+        "number": 2,
+        "action": "立即重設受害使用者 corp.jjnet.tw 密碼並強制撤銷所有作用中 Session",
+        "status": "Completed / in progress"
+      },
+      {
+        "number": 3,
+        "action": "邊界防火牆推播阻擋黑名單：阻斷惡意外部 IP 185.220.101.5 與網域 c2-update.secureserv.nl",
+        "status": "Completed / in progress"
+      }
+    ],
+    "recommendations": [
+      {
+        "priority": "P1",
+        "recommendation": "套用原廠針對 CVE-2026-3841 發布之安全修補更新，並於內部加強目錄存取控制"
+      },
+      {
+        "priority": "P2",
+        "recommendation": "公司全域群組原則 (GPO) 停用未簽署之 Office 巨集自動執行行為，並啟用 PowerShell 限制語言模式"
+      },
+      {
+        "priority": "P2",
+        "recommendation": "啟用 Windows 虛擬化型安全性 (VBS) 與 Credential Guard，預防記憶體憑證洩漏"
+      },
+      {
+        "priority": "P3",
+        "recommendation": "針對高風險部門安排社交工程防範與釣魚防禦實務抽測"
+      }
+    ],
+    "unresolvedItems": [
+      {
+        "number": 1,
+        "item": "確認網域控制站 (DC/AD) 是否存在同一帳號於其他主機二次重用之異常登入紀錄",
+        "evidence": "Pending confirmation"
+      },
+      {
+        "number": 2,
+        "item": "外部 C2 伺服器 (185.220.101.5) 所屬威脅組織身分與最新情資歸屬對齊",
+        "evidence": "Pending confirmation"
+      }
+    ],
+    "revisionHistory": [
+      {
+        "version": "1.0",
+        "date": "2026-09-16 22:30 UTC",
+        "author": "SOC Lead Analyst",
+        "change": "Initial incident report"
+      }
+    ],
+    "reviewApproval": {
+      "preparedBy": "SOC Lead Analyst",
+      "preparedAt": "2026-09-16 22:30 UTC",
+      "reviewedBy": "Vincent (資深資安顧問 / SOC 主管)",
+      "reviewedAt": "2026-09-16 22:45 UTC",
+      "approvalStatus": "Approved",
+      "approvalRecord": "APR-2026-0042"
+    },
+    "summary": "Palo Alto 防火牆與 Cortex XDR 於 2026-09-16T22:14:10Z - 2026-09-16T22:16:01Z 期間，偵測到來自外部惡意來源 (185.220.101.5) 針對內部 DMZ 主機 (WS-FIN-088.corp.jjnet.tw) 發動之 Microsoft Windows Task Scheduler Privilege Escalation (觸發次數：14 次連續探測)。攻擊者嘗試利用弱點 CVE-2026-3841 與混淆 PowerShell 腳本突破邊界防護並實施記憶體注入。周邊安全規則「SecRule-Inbound-DMZ-Protect」及時觸發並執行「reset-both」，端點代理已自動完成邏輯網路隔離並保全揮發性記憶體跡證。目前現有事證支持威脅已獲有效圍堵，後續憑證可能於其他主機重用之風險仍列入待確認追蹤項。",
+    "impact": "高風險威脅。外部惡意來源嘗試利用 CVE-2026-3841 (CWE-Unknown (待深入鑑識)) 與腳本注入突破邊界。防火牆已執行 reset-both 攔截，端點 XDR 已自動隔離受害主機，阻止了可能的憑證盜取與橫向移動擴散。",
+    "mitre": [
+      "T1059.001 (Command and Scripting Interpreter: PowerShell)",
+      "T1055 (Process Injection)",
+      "T1003.001 (OS Credential Dumping: LSASS Memory)",
+      "T1566.001 (Phishing: Spearphishing Attachment)"
+    ],
+    "affectedUsers": [
+      "corp.jjnet.tw"
+    ],
+    "actions": [
+      "維持受感染主機 WS-FIN-088.corp.jjnet.tw 之 EDR 邏輯網路隔離，保全 Volatile Memory Dump 供鑑識",
+      "立即重設受害使用者 corp.jjnet.tw 密碼並強制撤銷所有作用中 Session",
+      "邊界防火牆推播阻擋黑名單：阻斷惡意外部 IP 185.220.101.5 與網域 c2-update.secureserv.nl"
+    ],
+    "dataPack": {
+      "logEvidence": {
+        "logId": "PA-20260916-89421",
+        "eventName": "Microsoft Windows Task Scheduler Privilege Escalation",
+        "paSeverity": "Critical",
+        "paAction": "reset-both",
+        "src": "185.220.101.5:54322 (Zone: untrust-external, Geo: Netherlands / Tor Exit Node)",
+        "dst": "192.168.10.45:443 (Zone: trust-dmz, Host: WS-FIN-088.corp.jjnet.tw)",
+        "appId": "web-browsing / powershell",
+        "rule": "SecRule-Inbound-DMZ-Protect",
+        "timeRange": "2026-09-16T22:14:10Z - 2026-09-16T22:16:01Z",
+        "hitCount": "14 次連續探測",
+        "srcDstFlow": "185.220.101.5:54322 (Zone: untrust-external, Geo: Netherlands / Tor Exit Node) ➔ 192.168.10.45:443 (Zone: trust-dmz, Host: WS-FIN-088.corp.jjnet.tw)",
+        "primaryEvidence": "WINWORD.EXE (PID: 4312) 觸發 powershell.exe 混淆 Base64 腳本執行，並對 svchost.exe (PID: 6720) 實施代碼注入"
+      },
+      "cveContext": {
+        "status": "Candidate",
+        "cveId": "CVE-2026-3841",
+        "cwe": "CWE-Unknown (待深入鑑識)",
+        "cvss": "待評定",
+        "affectedProduct": "待進一步由 NVD 或原廠軟體清單對齊確認",
+        "technicalDetails": "日誌中提及候選漏洞編號 CVE-2026-3841，內部知識庫已標記候選 (Candidate) 狀態，需進一步比對版本利用鏈。",
+        "mitigation": [
+          "原廠安全通告比對：查閱該 CVE 原廠發布文件",
+          "清點資產版本是否落於弱點區間"
+        ],
+        "stateDescription": "【Candidate】偵測到 CVE 候選特徵，受影響版本與攻擊鏈需進一步鑑識核實。"
+      },
+      "iocHits": {
+        "ip": [
+          {
+            "value": "185.220.101.5",
+            "type": "External Malicious IPv4",
+            "reputation": "MALICIOUS (High Risk)",
+            "threatScore": 96,
+            "asn": "AS49453 (Tor Exit Node / Bulletproof Hosting, NL)",
+            "action": "防火牆邊界實施 Null-route 封鎖"
+          },
+          {
+            "value": "192.168.10.45",
+            "type": "Internal Asset IPv4",
+            "reputation": "INTERNAL COMPROMISED",
+            "threatScore": 75,
+            "asn": "JJNET Corporate LAN",
+            "action": "內部端點實施 EDR 邏輯網路隔離"
+          }
+        ],
+        "domain": [
+          {
+            "value": "c2-update.secureserv.nl",
+            "type": "Suspicious C2 Domain",
+            "threatScore": 94,
+            "reputation": "MALICIOUS C2",
+            "action": "DNS Sinkhole 攔截"
+          }
+        ],
+        "url": [
+          {
+            "value": "http://185.220.101.5:8080/beacon.bin",
+            "type": "Malicious Beacon URL",
+            "threatScore": 95,
+            "action": "次世代防火牆 URL 阻斷"
+          }
+        ],
+        "hash": [
+          {
+            "value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "type": "SHA-256",
+            "threatScore": 98,
+            "malwareFamily": "Trojan.PowerShell.InjectedBeacon",
+            "action": "EDR 特徵庫全網派送阻擋"
+          }
+        ],
+        "user": [
+          {
+            "value": "corp.jjnet.tw",
+            "department": "財務部 (Finance Dept)",
+            "riskStatus": "COMPROMISED_CREDENTIAL",
+            "action": "強制重設網域密碼並撤銷所有作用中 Session"
+          }
+        ],
+        "hostname": [
+          {
+            "value": "WS-FIN-088.corp.jjnet.tw",
+            "os": "Windows 11 Enterprise (Build 22631)",
+            "containmentStatus": "ISOLATED",
+            "action": "維持 EDR 隔離狀態，保全記憶體鏡像以供鑑識"
+          },
+          {
+            "value": "WS-FIN-088",
+            "os": "Windows 11 Enterprise (Build 22631)",
+            "containmentStatus": "ISOLATED",
+            "action": "維持 EDR 隔離狀態，保全記憶體鏡像以供鑑識"
+          }
+        ]
+      },
+      "analystNotes": "已自動彙整 PA/Cortex 日誌、4-State CVE 與 6 類 IOC 指標。受影響端點已完成一鍵網路隔離，外部連線遭防火牆阻斷，待分析師於人審閘道完成四項檢核以核准正式輸出。"
+    },
+    "humanReviewGateway": {
+      "status": "pending_review",
+      "checklist": {
+        "cveReasonable": true,
+        "iocCredible": true,
+        "riskAccurate": true,
+        "readyForRelease": false
+      },
+      "reviewedBy": "Vincent (資深資安顧問 / SOC 主管)",
+      "reviewNotes": "初稿依據 PA/Cortex 日誌與標準 11 節範本自動生成，CVE 判定合理，IOC 已驗證，待人審閘道完成核簽以授權正式輸出。",
+      "exportFormats": [
+        "Markdown",
+        "DOCX",
+        "PDF",
+        "Email",
+        "Ticket"
+      ]
+    },
+    "reviewStatus": "待審核"
+  },
+  "agentTrace": [
+    {
+      "stepIndex": 1,
+      "phase": "PLANNING",
+      "title": "📥 步驟 1：PA / Cortex Log 事件進入 (Log Ingestion)",
+      "detail": "接收原始 Palo Alto Threat Prevention / Cortex XDR 未解構日誌，啟動地端微調資安模型 (Sovereign Domain Model) 調查管線。"
+    },
+    {
+      "stepIndex": 2,
+      "phase": "TOOL_CALL",
+      "title": "🔍 步驟 2：擷取事件基本欄位 (Field Extraction)",
+      "detail": "解析基本欄位 ➜ 事件名稱: Microsoft Windows Task Scheduler Privilege Escalation | PA Severity: Critical | PA Action: reset-both | 來源: 185.220.101.5:54322 (Zone: untrust-external, Geo: Netherlands / Tor Exit Node) | 目的: 192.168.10.45:443 (Zone: trust-dmz, Host: WS-FIN-088.corp.jjnet.tw) | App-ID: web-browsing / powershell | Rule: SecRule-Inbound-DMZ-Protect | Log ID: PA-20260916-89421。"
+    },
+    {
+      "stepIndex": 3,
+      "phase": "TOOL_RESULT",
+      "title": "⏱️ 步驟 3：整理事件摘要 (Event Summarization)",
+      "detail": "時間範圍: 2026-09-16T22:14:10Z - 2026-09-16T22:16:01Z | 命中次數: 14 次連續探測 | 流向: 185.220.101.5:54322 (Zone: untrust-external, Geo: Netherlands / Tor Exit Node) ➔ 192.168.10.45:443 (Zone: trust-dmz, Host: WS-FIN-088.corp.jjnet.tw) | 主要證據: WINWORD.EXE (PID: 4312) 觸發 powershell.exe 混淆 Base64 腳本執行，並對 svchost.exe (PID: 6720) 實施代碼注入。"
+    },
+    {
+      "stepIndex": 4,
+      "phase": "TOOL_CALL",
+      "title": "🛡️ 步驟 4：查詢 CVE 關聯 (4-State Status: Candidate)",
+      "detail": "比對 2022-2026 CVE 弱點知識庫。判定結果：[Candidate] 關聯 CVE-2026-3841 (CWE-Unknown (待深入鑑識))。【Candidate】偵測到 CVE 候選特徵，受影響版本與攻擊鏈需進一步鑑識核實。"
+    },
+    {
+      "stepIndex": 5,
+      "phase": "TOOL_RESULT",
+      "title": "🎯 步驟 5：比對可疑列表 / IOC (6 類別比對)",
+      "detail": "完成 6 類指標清單檢核：IP(2), Domain(1), URL(1), Hash(1), User(1), Hostname(2)。檢出惡意 C2 IP: 185.220.101.5 (威脅分: 96)，受影響主機: WS-FIN-088.corp.jjnet.tw。"
+    },
+    {
+      "stepIndex": 6,
+      "phase": "REASONING_REFLECTION",
+      "title": "📦 步驟 6：組成 Incident Data Pack (統一資料脈絡層)",
+      "detail": "整合 Log 證據 + CVE 脈絡 + IOC 命中 + 分析師備註，建立不可竄改之統一鑑識脈絡資料包 (Incident Data Pack)，作為模型生成與稽核軌跡依據。"
+    },
+    {
+      "stepIndex": 7,
+      "phase": "DECISION",
+      "title": "🤖 步驟 7：地端 AI 產生事件報告初稿 (Draft Generation)",
+      "detail": "地端微調 LLM 基於 Data Pack 自動產出初稿：事件識別碼 PA-20260916-89421，嚴重性: Critical，初步風險評分: 92。包含事件摘要、證據鏈、CVE 弱點處置與應變圍堵指引。"
+    },
+    {
+      "stepIndex": 8,
+      "phase": "DECISION",
+      "title": "⚖️ 步驟 8：人審閘道審核 (Analyst Review Gateway) ➜ 正式輸出",
+      "detail": "觸發分析師審核檢查表：[1. CVE 是否合理] [2. IOC 是否可信] [3. 風險是否正確] [4. 是否可對外]。審核通過後解鎖 4 大格式正式輸出 (Markdown / PDF / Email / Ticket)。"
+    }
+  ],
+  "meta": {
+    "agentName": "Incident Investigation Agent (Task 01)",
+    "executionMode": "Local Sovereign Domain Model (地端微調、資料不出門)",
+    "pipeline": "Slide 8 - 8-Step Sovereign Agent Pipeline",
+    "latencyMs": 3,
+    "timestamp": "2026-09-22T07:56:02Z"
+  }
+}

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JJNET 資安智能運籌中心 - 多 Agent 分析平台</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- 系統頂部導航 -->
+  <header class="header">
+    <div class="logo-group">
+      <div class="logo-badge">JJNET</div>
+      <div>
+        <div class="logo-title">Cyber SOC Multi-Agent Platform</div>
+        <div class="logo-subtitle">資安智能多代理協同平台 ‧ 臺灣企業級防護架構</div>
+      </div>
+    </div>
+
+    <div class="system-status-bar">
+      <div class="status-pill">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">連線中...</span>
+      </div>
+      <div class="status-pill">
+        <span style="color:var(--text-muted);">供應商:</span>
+        <strong id="provider-badge" style="color:var(--accent-cyan);">UnieAI</strong>
+      </div>
+      <div class="status-pill">
+        <span style="color:var(--text-muted);">模型:</span>
+        <strong id="model-badge">gemma-4-E4B-it</strong>
+      </div>
+      <div class="status-pill">
+        <span style="color:var(--text-muted);">回應耗時:</span>
+        <strong id="latency-badge">-- ms</strong>
+      </div>
+      <a href="training.html" class="btn btn-primary" style="font-size:0.8rem; padding:5px 12px; text-decoration:none; margin-left:8px;">
+        🎓 新人訓練與主管簽核獨立系統 ➜
+      </a>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- 核心任務切換分頁 (前三個為 AI Agent，任務四為前端 + RAG) -->
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-agent="incident">
+        <span>🚨</span> 任務一：事件調查 Agent
+      </button>
+      <button class="nav-tab" data-agent="consultant">
+        <span>🛡️</span> 任務二：資安顧問 Agent
+      </button>
+      <button class="nav-tab" data-agent="monthly-report">
+        <span>📊</span> 任務三：Cortex 月報 Agent
+      </button>
+      <button class="nav-tab" data-agent="training">
+        <span>🎓</span> 任務四：新人訓練 (前端+RAG)
+      </button>
+      <button class="nav-tab" data-agent="mistake-notebook">
+        <span>📓</span> 培訓錯題本 (<span id="mistake-count">0</span>)
+      </button>
+    </nav>
+
+    <!-- 工作區：左側輸入 / 右側結構化分析結果 -->
+    <div class="workspace-grid">
+      
+      <!-- 左側：資料輸入與控制項 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span id="input-title-icon">🚨</span>
+            <span id="input-title-text">資安事件原文與調查日誌</span>
+          </div>
+          <button class="btn btn-secondary" id="btn-load-sample" style="font-size:0.8rem; padding:4px 10px;">
+            載入範例資料
+          </button>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <span class="mask-badge">🔒 端點安全遮罩：送出前自動遮蔽 IP、Email 與帳號</span>
+        </div>
+
+        <!-- 1. 事件調查輸入面板 -->
+        <div class="agent-input-panel" id="panel-input-incident">
+          <div class="form-group">
+            <label class="form-label">SIEM / EDR 告警原文與調查記錄</label>
+            <textarea class="form-textarea" id="input-incident" placeholder="請貼上原始告警日誌 (如 Palo Alto Cortex、CrowdStrike、Splunk 日誌或系統記錄)..."></textarea>
+          </div>
+        </div>
+
+        <!-- 2. 資安顧問輸入面板 (支援讀取任務一事件/月報檔案) -->
+        <div class="agent-input-panel" id="panel-input-consultant" style="display:none;">
+          <!-- 報告檔案讀取工具列 -->
+          <div style="background:rgba(8,126,139,0.12); border:1px solid var(--accent-cyan); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+              <div style="font-weight:700; color:var(--accent-cyan); font-size:0.85rem;">📑 報告解讀與處置指引模式 (Report Ingestion Mode)</div>
+              <div style="font-size:0.75rem; color:var(--text-secondary);">可直接讀入任務一事件報告或月報檔案 (.docx / .md / .json) 進行深度技術解讀與具體處置建議</div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-secondary" id="btn-load-task1-report" type="button" style="font-size:0.75rem; padding:5px 10px;">
+                ⚡ 載入任務一最新產出報告
+              </button>
+              <label class="btn btn-primary" style="font-size:0.75rem; padding:5px 10px; cursor:pointer; margin:0; display:inline-flex; align-items:center;">
+                📂 選擇本機報告檔案
+                <input type="file" id="consultant-file-input" accept=".docx,.md,.json,.txt,.log" style="display:none;">
+              </label>
+            </div>
+          </div>
+
+          <!-- 已載入報告狀態徽章 -->
+          <div id="loaded-report-badge" style="display:none; background:rgba(16,185,129,0.15); border:1px solid #10b981; border-radius:var(--radius-sm); padding:8px 12px; margin-bottom:12px; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:1.1rem;">📄</span>
+              <div>
+                <strong style="color:#10b981; font-size:0.85rem;" id="loaded-report-filename">已載入報告</strong>
+                <div style="font-size:0.75rem; color:var(--text-secondary);" id="loaded-report-info">長度: 0 字元</div>
+              </div>
+            </div>
+            <button class="btn btn-secondary" id="btn-clear-loaded-report" type="button" style="font-size:0.7rem; padding:2px 8px; color:#ef4444; border-color:#ef4444;">
+              ✖ 清除
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">資安顧問諮詢問題 / 期望指引重點 (選填)</label>
+            <input type="text" class="form-input" id="input-consultant-q" placeholder="可留空，或輸入特定問題（如：請針對本報告分析受害主機特權憑證風險並擬定處置順序）">
+          </div>
+          <div class="form-group">
+            <label class="form-label">參考內部知識庫 / 規章文件 (選填)</label>
+            <textarea class="form-textarea" id="input-consultant-kb" placeholder="請貼上內部資安政策、ISO 27001 條文或處置規章...（若未提供，顧問將依據 SOP-SEC-004 與 ISO 27001 標準自動檢索）" style="min-height:90px;"></textarea>
+          </div>
+        </div>
+
+        <!-- 3. Cortex 月報輸入面板 -->
+        <div class="agent-input-panel" id="panel-input-monthly-report" style="display:none;">
+          <div class="form-group">
+            <label class="form-label">報表目標月份</label>
+            <input type="month" class="form-input" id="input-month" value="2026-09">
+          </div>
+          <div class="form-group">
+            <label class="form-label">當月份資安彙整日誌 / 統計數據</label>
+            <textarea class="form-textarea" id="input-monthly-data" placeholder="請貼上當月彙整之事件紀錄、告警分類清單與處理歷程..."></textarea>
+          </div>
+        </div>
+
+        <!-- 4. 資安培訓輸入面板 -->
+        <div class="agent-input-panel" id="panel-input-training" style="display:none;">
+          <div style="background:rgba(6,182,212,0.1); border:1px solid var(--accent-cyan); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-weight:700; color:var(--accent-cyan); font-size:0.85rem;">⚡ 獨立新人訓練與主管簽核工作流</div>
+              <div style="font-size:0.75rem; color:var(--text-secondary);">包含課本匯入、前端 RAG 檢索、編輯定稿與主管簽章證書</div>
+            </div>
+            <a href="training.html" class="btn btn-primary" style="font-size:0.75rem; padding:4px 10px; text-decoration:none;">開啟獨立系統 ➜</a>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">訓練主題 / 章節名稱</label>
+            <input type="text" class="form-input" id="input-training-chapter" value="社交工程防範與惡意郵件辨識">
+          </div>
+          <div class="form-group">
+            <label class="form-label">培訓目標受眾</label>
+            <select class="form-select" id="input-training-audience">
+              <option value="企業全員 (各部門同仁)">企業全員 (各部門同仁)</option>
+              <option value="IT 與研發工程人員">IT 與研發工程人員</option>
+              <option value="高階主管與財務人員">高階主管與財務人員</option>
+              <option value="SOC 資安維運團隊">SOC 資安維運團隊</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">實務演練情境備註</label>
+            <textarea class="form-textarea" id="input-training-notes" placeholder="可加入特定情境（如偽冒外部供應商帳單、微軟更新通知等）..." style="min-height:90px;"></textarea>
+          </div>
+        </div>
+
+        <!-- 按鈕控制列 -->
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-submit" style="flex:2;">
+            <span>🚀</span> 送出 AI 分析
+          </button>
+          <button class="btn btn-danger" id="btn-abort" style="flex:1;" disabled>
+            <span>⏹️</span> 停止生成
+          </button>
+          <button class="btn btn-secondary" id="btn-retry" style="flex:1;">
+            <span>🔄</span> 重新生成
+          </button>
+        </div>
+      </div>
+
+      <!-- 右側：結構化分析結果與審核流程 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>📋</span>
+            <span id="output-title-text">結構化分析結果</span>
+          </div>
+
+          <div class="results-header-actions">
+            <div id="review-status-container" style="display:none;">
+              <span style="font-size:0.8rem; color:var(--text-secondary);">人工覆核：</span>
+              <select class="form-select" id="review-status-select" style="width:auto; padding:4px 8px; font-size:0.8rem; display:inline-block;">
+                <option value="待審核">🟡 待審核</option>
+                <option value="已確認">🟢 已確認</option>
+                <option value="需補件">🔴 需補件</option>
+              </select>
+            </div>
+
+            <button class="btn btn-secondary" id="btn-edit-toggle" style="font-size:0.8rem; padding:4px 10px;">
+              ✏️ 編輯內容
+            </button>
+            <button class="btn btn-secondary" id="btn-export-json" style="font-size:0.8rem; padding:4px 10px;">
+              📥 JSON
+            </button>
+            <button class="btn btn-secondary" id="btn-export-md" style="font-size:0.8rem; padding:4px 10px;">
+              📝 Markdown
+            </button>
+            <button class="btn btn-secondary" id="btn-export-docx" style="font-size:0.8rem; padding:4px 10px;">
+              📄 Word (.docx)
+            </button>
+            <button class="btn btn-secondary" id="btn-export-pdf" style="font-size:0.8rem; padding:4px 10px;">
+              🖨️ 列印/PDF
+            </button>
+            <button class="btn btn-secondary" id="btn-export-email" style="font-size:0.8rem; padding:4px 10px;">
+              ✉️ Email 初稿
+            </button>
+            <button class="btn btn-secondary" id="btn-export-ticket" style="font-size:0.8rem; padding:4px 10px;">
+              🎫 Ticket 工單
+            </button>
+          </div>
+        </div>
+
+        <!-- 生成進度指示條 -->
+        <div class="progress-container" id="progress-container">
+          <div class="progress-header">
+            <span id="progress-text">準備處理資料...</span>
+            <span id="progress-percent" style="color:var(--accent-cyan); font-weight:700;">25%</span>
+          </div>
+          <div class="progress-steps">
+            <div class="progress-step active" id="step-1"></div>
+            <div class="progress-step" id="step-2"></div>
+            <div class="progress-step" id="step-3"></div>
+            <div class="progress-step" id="step-4"></div>
+          </div>
+        </div>
+
+        <!-- 錯誤提示區塊 -->
+        <div class="error-banner" id="error-banner">
+          <div style="font-weight:700; margin-bottom:4px;">⚠️ 請求發生錯誤</div>
+          <div id="error-message">錯誤訊息描述</div>
+          <div style="margin-top:8px;">
+            <button class="btn btn-secondary" id="btn-error-retry" style="font-size:0.8rem; padding:4px 10px;">
+              重新送出請求
+            </button>
+          </div>
+        </div>
+
+        <!-- AI Agent 自主推理與工具調用軌跡 (ReAct Loop) -->
+        <div class="agent-trace-container" id="agent-trace-container" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; border-bottom:1px solid rgba(59,130,246,0.3); padding-bottom:0.5rem;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:1.2rem;">🤖</span>
+              <span style="font-weight:700; color:var(--accent-cyan); font-size:0.95rem;" id="agent-trace-title">AI Agent 自主推理與工具調用軌跡 (ReAct Loop)</span>
+            </div>
+            <span class="status-badge badge-review" id="agent-trace-badge">Autonomous Agent</span>
+          </div>
+          <div class="agent-trace-timeline" id="agent-trace-timeline" style="display:flex; flex-direction:column; gap:8px;">
+            <!-- 動態插入 Agent 執行軌跡 -->
+          </div>
+        </div>
+
+        <!-- 結果展示區容器 -->
+        <div id="results-display">
+          <div style="text-align:center; padding:4rem 1rem; color:var(--text-muted);">
+            <div style="font-size:3rem; margin-bottom:1rem; opacity:0.5;">🛡️</div>
+            <div style="font-size:1.1rem; font-weight:600; color:var(--text-secondary);">尚未生成分析報告</div>
+            <div style="font-size:0.85rem; margin-top:6px;">請於左側輸入資料或點選「載入範例資料」，並按下「送出 AI 分析」。</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  <!-- 彈出視窗：Email 初稿 / Ticket 工單預覽與一鍵複製 (對齊 Slide 8 正式輸出規格) -->
+  <div class="modal-overlay" id="export-modal" style="display:none;">
+    <div class="modal-container">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">
+          <span>✉️</span> 預覽與匯出
+        </div>
+        <button class="modal-close-btn" id="modal-close-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:10px;" id="modal-subtitle">
+          以下為自動生成之正式通報內容：
+        </div>
+        <pre class="modal-pre-block" id="modal-content"></pre>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modal-btn-cancel">關閉</button>
+        <button class="btn btn-primary" id="modal-btn-copy">📋 一鍵複製全文</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

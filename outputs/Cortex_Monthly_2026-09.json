@@ -1,0 +1,101 @@
+{
+  "executiveSummary": "本月份 (2026-09) SOC 維運監控平台整體運作穩健，自動化防禦阻擋率維持 97.4% 高水平。MTTA 達成 12 分鐘、MTTR 達成 38 分鐘，皆優於服務等級協議 (SLA) 目標。本月重啟之端點巨集防護政策有效遏止了勒索軟體與無檔案指令碼攻擊之擴散。",
+  "totalEvents": 1428,
+  "severityDistribution": {
+    "critical": 2,
+    "high": 4,
+    "medium": 7,
+    "low": 5
+  },
+  "blockedEvents": 1391,
+  "mtta": "12 分鐘 (優於 SLA 15分目標)",
+  "mttr": "38 分鐘 (優於 SLA 60分目標)",
+  "monthlyTrend": [
+    {
+      "date": "2026-09-W1",
+      "count": 310
+    },
+    {
+      "date": "2026-09-W2",
+      "count": 420
+    },
+    {
+      "date": "2026-09-W3",
+      "count": 390
+    },
+    {
+      "date": "2026-09-W4",
+      "count": 308
+    }
+  ],
+  "eventCategories": [
+    {
+      "name": "惡意郵件與社交工程 (Phishing)",
+      "count": 680,
+      "percentage": "47.6%"
+    },
+    {
+      "name": "身分驗證與暴力密碼嘗試 (Credential Access)",
+      "count": 395,
+      "percentage": "27.7%"
+    },
+    {
+      "name": "端點腳本與記憶體攻擊 (Execution)",
+      "count": 210,
+      "percentage": "14.7%"
+    },
+    {
+      "name": "其他網路異常掃描與連線探測",
+      "count": 143,
+      "percentage": "10.0%"
+    }
+  ],
+  "mitreAnalysis": [
+    {
+      "id": "T1566.001",
+      "name": "Spearphishing Attachment",
+      "count": 42,
+      "description": "外部偽冒供應商之惡意帳單郵件"
+    },
+    {
+      "id": "T1110.003",
+      "name": "Password Spraying",
+      "count": 28,
+      "description": "外部殭屍網路針對公開入口網站之認證探測"
+    },
+    {
+      "id": "T1059.001",
+      "name": "PowerShell Scripting",
+      "count": 19,
+      "description": "端點利用混淆指令碼嘗試執行惡意載荷"
+    }
+  ],
+  "topIncidents": [
+    {
+      "id": "INC-202609-001",
+      "title": "研發核心伺服器 LockBit 變種勒索探測",
+      "severity": "Critical",
+      "status": "已圍堵閉案"
+    },
+    {
+      "id": "INC-202609-004",
+      "title": "外部 IP 發動跨帳號密碼潑灑攻擊",
+      "severity": "High",
+      "status": "已阻擋並加固 MFA"
+    },
+    {
+      "id": "INC-202609-012",
+      "title": "財務部遭受針對性 BEC 商業郵件詐騙",
+      "severity": "High",
+      "status": "已全網清除郵件隔離"
+    }
+  ],
+  "majorIncidentDetails": "INC-202609-001 發生於 9 月 12 日，攻擊者嘗試利用外包廠商未授權之遠端通道投遞 LockBit 變種，Cortex XDR 於 90 秒內觸發行為偵測並阻斷進程，未造成資料外洩或加密損失。",
+  "recommendations": [
+    "強制將所有具備外網存取之服務全數納入雙因素驗證 (MFA) 與地理圍欄 (Geo-blocking) 防護",
+    "針對各部門進行次世代郵件安全閘道 (SEG) 演練，提升員工商業郵件偽冒之辨識敏銳度",
+    "定期檢視外包廠商存取權限，落實「最小特權 (Principle of Least Privilege)」審核"
+  ],
+  "recommendationStatus": "進行中 (預計下月 15 日前完成覆核)",
+  "reviewStatus": "已確認"
+}

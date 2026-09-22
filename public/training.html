@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JJNET 資安新人訓練與主管簽核獨立系統 (RAG 增強版)</title>
+  <link rel="stylesheet" href="training.css">
+</head>
+<body>
+
+  <!-- 系統頂部導航 -->
+  <header class="header">
+    <div class="logo-group">
+      <div class="logo-badge">JJNET ACADEMY</div>
+      <div>
+        <div style="font-size:1.15rem; font-weight:700; color:#fff;">資安新人訓練與主管簽核系統</div>
+        <div style="font-size:0.8rem; color:var(--text-secondary);">全流程獨立閉環：課本匯入 ➜ 前端 RAG 檢索 ➜ 編輯定稿 ➜ 新人測驗 ➜ 主管簽核</div>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span class="status-badge badge-draft" id="global-status-badge">階段 1：教材準備中</span>
+      <a href="index.html" class="nav-link">⬅ 返回 JJNET SOC 總主機</a>
+    </div>
+  </header>
+
+  <!-- 5 階段流水線 Stepper -->
+  <div class="stepper-container">
+    <div class="pipeline-stepper">
+      <div class="step-item active" id="nav-step-1" onclick="switchStep(1)">
+        <div class="step-number">1</div>
+        <div class="step-info">
+          <div class="step-title">匯入課本教材</div>
+          <div class="step-desc">建立 RAG 知識庫與分段</div>
+        </div>
+      </div>
+
+      <div class="step-item" id="nav-step-2" onclick="switchStep(2)">
+        <div class="step-number">2</div>
+        <div class="step-info">
+          <div class="step-title">前端 RAG 出題</div>
+          <div class="step-desc">精準檢索與 AI 生成教材</div>
+        </div>
+      </div>
+
+      <div class="step-item" id="nav-step-3" onclick="switchStep(3)">
+        <div class="step-number">3</div>
+        <div class="step-info">
+          <div class="step-title">修訂與定稿流程</div>
+          <div class="step-desc">講師線上覆核與鎖定定稿</div>
+        </div>
+      </div>
+
+      <div class="step-item" id="nav-step-4" onclick="switchStep(4)">
+        <div class="step-number">4</div>
+        <div class="step-info">
+          <div class="step-title">新人學習與測驗</div>
+          <div class="step-desc">實戰情境演練與錯題本</div>
+        </div>
+      </div>
+
+      <div class="step-item" id="nav-step-5" onclick="switchStep(5)">
+        <div class="step-number">5</div>
+        <div class="step-info">
+          <div class="step-title">主管簽核與證書</div>
+          <div class="step-desc">CISO 簽核蓋印與 PDF 匯出</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- ==================== 階段 1：匯入課本與 RAG 知識庫 ==================== -->
+    <div class="panel-view active" id="panel-1">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📚 步驟 1：匯入資安課本與教材庫 (Textbook Knowledge Base)</div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-secondary" onclick="loadSampleTextbook(1)">載入《社交工程與釣魚防護手冊》</button>
+            <button class="btn btn-secondary" onclick="loadSampleTextbook(2)">載入《端點安全與重大事件通報 SOP》</button>
+            <button class="btn btn-secondary" onclick="loadSampleTextbook(3)">載入《ISO 27001 存取控制實務》</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:1rem; font-size:0.88rem; color:var(--text-secondary);">
+          系統支援直接貼上企業資安手冊、規章、教科書章節或教材內容。前端 RAG 引擎會自動將教材切分為知識語意片段 (Chunks)，確保後續題目 100% 依據教材出題，絕不憑空捏造。
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">課本教材名稱 / 訓練模組代號</label>
+          <input type="text" class="form-input" id="tb-title" value="JJNET 資安新人實戰手冊：第一章 社交工程與憑證防竊實務">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">課本教材全文內容 (可貼上或由上方範本載入)</label>
+          <textarea class="form-textarea" id="tb-content" style="min-height:220px;" placeholder="請在此處貼上課本章節文字..."></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <button class="btn btn-primary" onclick="processTextbookChunks()">
+            ⚡ 解析並建立 RAG 向量切片 (Build RAG Chunks)
+          </button>
+          <span style="font-size:0.85rem; color:var(--text-muted);" id="tb-stats-text">目前尚未分段</span>
+        </div>
+
+        <!-- 課本分段切片預覽 -->
+        <div style="margin-top:1.5rem;" id="chunks-preview-container" style="display:none;">
+          <div style="font-size:0.95rem; font-weight:700; color:var(--accent-cyan); margin-bottom:8px;">
+            🧩 前端 RAG 切片預覽 (已切分為 <span id="chunk-count">0</span> 個知識段落)
+          </div>
+          <div class="chunks-grid" id="chunks-grid"></div>
+        </div>
+
+        <div style="margin-top:1.5rem; text-align:right;">
+          <button class="btn btn-success" onclick="goToStep(2)">
+            下一步：前往 RAG 智能出題 ➡
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 階段 2：前端 RAG 檢索與出題 ==================== -->
+    <div class="panel-view" id="panel-2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🤖 步驟 2：前端 RAG 檢索增強與 AI 出題 (RAG Retrieval & Generation)</div>
+          <span class="status-badge badge-draft" id="rag-status-badge">等待檢索</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+          <div>
+            <div class="form-group">
+              <label class="form-label">指定訓練章節 / 核心技能目標</label>
+              <input type="text" class="form-input" id="rag-query" value="釣魚郵件特徵辨識與可疑信件通報應變">
+            </div>
+            <div class="form-group">
+              <label class="form-label">培訓對象職能</label>
+              <select class="form-select" id="rag-audience">
+                <option value="資安與 IT 新進同仁">資安與 IT 新進同仁</option>
+                <option value="企業全員新進員工">企業全員新進員工</option>
+                <option value="研發工程師">研發工程師</option>
+                <option value="財務與核心業務人員">財務與核心業務人員</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">出題題數 (依規格每章至少 3 題)</label>
+              <select class="form-select" id="rag-q-count">
+                <option value="3" selected>3 題實戰題目 (標準)</option>
+                <option value="5">5 題實戰題目 (深度測驗)</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" id="btn-run-rag" onclick="runRAGAndGenerate()">
+              🔍 執行前端 RAG 檢索並產生教材與題目
+            </button>
+          </div>
+
+          <!-- RAG 檢索命中片段展示 -->
+          <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:1rem;">
+            <div style="font-size:0.9rem; font-weight:700; color:var(--accent-cyan); margin-bottom:6px;">
+              🎯 RAG 檢索命中之課本核心段落 (Top Relevant Chunks)
+            </div>
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">
+              以下段落將作為真實 Context 注入 AI 模型，嚴防模型幻覺：
+            </div>
+            <div id="retrieved-chunks-list" style="max-height:220px; overflow-y:auto; font-size:0.82rem;">
+              <div style="color:var(--text-muted); text-align:center; padding:2rem 0;">請點擊左側「執行前端 RAG 檢索」</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 產出結果即時預覽 -->
+        <div id="gen-loading" style="display:none; text-align:center; padding:2rem; background:rgba(6,182,212,0.05); border-radius:var(--radius-md); border:1px dashed var(--accent-cyan);">
+          <div style="font-size:1.5rem; margin-bottom:8px;">⚙️ AI 模型正在錨定課本進行結構化教材生成...</div>
+          <div style="font-size:0.85rem; color:var(--text-secondary);">使用模型：<span id="gen-model-text">gemma-4-E4B-it / Gemini</span> ‧ 語言約束：臺灣繁體資安專業規範</div>
+        </div>
+
+        <div id="step2-next-action" style="display:none; margin-top:1.5rem; text-align:right;">
+          <button class="btn btn-success" onclick="goToStep(3)">
+            下一步：進入修訂與定稿流程 (Draft Review) ➡
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 階段 3：審核與定稿流程 (Draft & Finalize) ==================== -->
+    <div class="panel-view" id="panel-3">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">📝 步驟 3：訓練教材與考題定稿流程 (Finalization Workflow)</div>
+            <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:4px;">
+              資安培訓教官可在此階段逐項編輯調整教材、修改題目或答案解析。點擊「鎖定定稿」後將生成唯一版本序號並封存發布。
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="status-badge badge-draft" id="draft-seal-badge">狀態：草稿 (Draft)</span>
+            <button class="btn btn-secondary" id="btn-toggle-edit-p3" onclick="toggleDraftEdit()">
+              ✏️ 啟用線上修改
+            </button>
+            <button class="btn btn-success" id="btn-finalize" onclick="finalizeDraft()">
+              🔒 確認鎖定定稿 (Finalize Version)
+            </button>
+          </div>
+        </div>
+
+        <!-- 定稿版本卡片 -->
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-secondary); padding:10px 16px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:1.5rem;">
+          <div>
+            <span style="font-size:0.8rem; color:var(--text-muted);">課綱代號：</span>
+            <strong id="final-version-id" style="color:var(--accent-cyan);">TRAIN-2026-CH01-DRAFT</strong>
+          </div>
+          <div>
+            <span style="font-size:0.8rem; color:var(--text-muted);">出題依據：</span>
+            <span id="final-source-text" style="color:var(--text-secondary);">JJNET 資安新人教材 RAG 檢索</span>
+          </div>
+          <div>
+            <span style="font-size:0.8rem; color:var(--text-muted);">審核狀態：</span>
+            <span id="final-review-text" style="color:#fbbf24; font-weight:700;">待定稿</span>
+          </div>
+        </div>
+
+        <!-- 編輯容器 -->
+        <div id="draft-content-container">
+          <!-- 核心教材編輯區 -->
+          <div class="draft-editor-box" id="box-lesson">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <strong style="color:var(--accent-cyan);">📌 核心教材整理 (Core Lesson)</strong>
+              <span style="font-size:0.75rem; color:var(--text-muted);">點擊可直接修改文字</span>
+            </div>
+            <div id="edit-lesson" style="line-height:1.7; font-size:0.95rem; white-space:pre-wrap;">尚未生成內容</div>
+          </div>
+
+          <!-- 情境演練編輯區 -->
+          <div class="draft-editor-box" id="box-scenario">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <strong style="color:var(--accent-cyan);">🎭 實戰情境模擬演練 (Scenario)</strong>
+            </div>
+            <div id="edit-scenario" style="line-height:1.7; font-size:0.9rem; background:rgba(6,182,212,0.05); padding:12px; border-radius:4px;">尚未生成內容</div>
+          </div>
+
+          <!-- 實戰測驗題目編輯區 -->
+          <div class="draft-editor-box" id="box-questions">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <strong style="color:var(--accent-cyan);">📝 實戰考題 (Questions & Explanations)</strong>
+              <button class="btn btn-secondary" onclick="addNewQuestionDraft()" style="font-size:0.75rem; padding:3px 8px;">➕ 新增自訂考題</button>
+            </div>
+            <div id="edit-questions-list"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:1.5rem; display:flex; justify-content:space-between; align-items:center;">
+          <button class="btn btn-secondary" onclick="exportDraftMarkdown()">
+            📥 匯出定稿教材 Markdown
+          </button>
+          <button class="btn btn-success" id="btn-go-step4" onclick="goToStep(4)" disabled>
+            下一步：交付新人研讀並開啟測驗 (須先定稿) ➡
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 階段 4：新人學習與測驗 ==================== -->
+    <div class="panel-view" id="panel-4">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">✍️ 步驟 4：新人研讀學習與線上實戰評量</div>
+            <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:4px;">
+              受訓學員請依序研讀定稿教材重點，並於下方進行即時線上測驗。測驗結果與錯題將自動納入完訓考核紀錄。
+            </div>
+          </div>
+
+          <!-- 新人資訊輸入 -->
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="text" class="form-input" id="trainee-name" value="王大明" placeholder="新人姓名" style="width:120px; font-size:0.85rem; padding:4px 8px;">
+            <input type="text" class="form-input" id="trainee-id" value="JN-8812" placeholder="員工工號" style="width:100px; font-size:0.85rem; padding:4px 8px;">
+            <input type="text" class="form-input" id="trainee-dept" value="資安維運部 (SOC)" placeholder="所屬部門" style="width:140px; font-size:0.85rem; padding:4px 8px;">
+          </div>
+        </div>
+
+        <!-- 教材研讀重點摺疊區 -->
+        <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:1rem; margin-bottom:1.5rem;">
+          <details open>
+            <summary style="font-weight:700; color:var(--accent-cyan); cursor:pointer; font-size:0.95rem;">
+              📖 點此研讀本章定稿教材與模擬情境
+            </summary>
+            <div style="margin-top:12px; font-size:0.92rem; line-height:1.7; border-top:1px solid var(--border-color); padding-top:10px;" id="trainee-study-area">
+              請先於步驟 3 完成定稿。
+            </div>
+          </details>
+        </div>
+
+        <!-- 測驗成績看板 (作答完畢顯示) -->
+        <div class="score-card" id="score-card" style="display:none;">
+          <div>
+            <div style="font-size:0.85rem; color:var(--text-secondary);">受訓學員</div>
+            <div style="font-size:1.2rem; font-weight:700;" id="score-name-display">王大明</div>
+          </div>
+          <div>
+            <div style="font-size:0.85rem; color:var(--text-secondary);">實戰測驗總分</div>
+            <div class="score-num" id="final-score">100</div>
+          </div>
+          <div>
+            <div style="font-size:0.85rem; color:var(--text-secondary);">考核判定</div>
+            <div style="font-size:1.4rem; font-weight:800; color:var(--accent-green);" id="final-pass-badge">合格 (PASS)</div>
+          </div>
+          <div>
+            <div style="font-size:0.85rem; color:var(--text-secondary);">錯題收錄</div>
+            <div style="font-size:1.2rem; font-weight:700; color:var(--accent-red);" id="score-mistake-count">0 題</div>
+          </div>
+        </div>
+
+        <!-- 線上測驗互動題目區 -->
+        <div id="trainee-quiz-container">
+          <div style="text-align:center; padding:3rem 0; color:var(--text-muted);">
+            尚未載入定稿考題，請先完成步驟 3 定稿流程。
+          </div>
+        </div>
+
+        <div style="margin-top:1.5rem; display:flex; justify-content:space-between; align-items:center;">
+          <button class="btn btn-secondary" onclick="showMistakesModal()">
+            📓 查看專屬錯題本 (<span id="t-mistake-badge">0</span>)
+          </button>
+
+          <button class="btn btn-success" id="btn-go-step5" onclick="goToStep(5)" disabled>
+            下一步：送交主管簽核並簽發證書 ➡
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 階段 5：主管簽核與證書 ==================== -->
+    <div class="panel-view" id="panel-5">
+      <!-- 簽核操作面板 (列印時隱藏) -->
+      <div class="card no-print">
+        <div class="card-header">
+          <div class="card-title">🛡️ 步驟 5：主管核准簽核工作流 (Supervisor Sign-off Flow)</div>
+          <span class="status-badge badge-draft" id="sign-status-badge">待主管簽核</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+          <div>
+            <div class="form-group">
+              <label class="form-label">簽核主管/資深顧問姓名 (Supervisor / Consultant)</label>
+              <input type="text" class="form-input" id="supervisor-name" value="" placeholder="請輸入主管姓名">
+            </div>
+            <div class="form-group">
+              <label class="form-label">主管職稱 / 權責單位</label>
+              <input type="text" class="form-input" id="supervisor-title" value="資深資安顧問 / SOC 主管">
+            </div>
+            <div class="form-group">
+              <label class="form-label">簽核日期</label>
+              <input type="date" class="form-input" id="sign-date">
+            </div>
+          </div>
+
+          <div>
+            <div class="form-group">
+              <label class="form-label">主管審核意見與培訓考語</label>
+              <textarea class="form-textarea" id="sign-comment" style="min-height:110px;">該員已確實完成《第一章 社交工程防範》教材研讀與實務情境評量，測驗成績達標；教材與題目業經權責資安主管過目確認無誤，具備基礎資安威脅鑑別與通報應變能力，准予結訓。</textarea>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+              <button class="btn btn-success" onclick="approveAndSign()" style="flex:2;">
+                ✅ 核准通過並加蓋資安印信 (Approve & Stamp)
+              </button>
+              <button class="btn btn-danger" onclick="rejectSign()" style="flex:1;">
+                ❌ 退回重訓
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:1.5rem; display:flex; justify-content:flex-end; gap:10px;">
+          <button class="btn btn-secondary" onclick="exportFinalReportJSON()">
+            📥 匯出完整簽核紀錄 (JSON)
+          </button>
+          <button class="btn btn-primary" onclick="window.print()">
+            🖨️ 列印 / 匯出正式結訓證書 (PDF)
+          </button>
+        </div>
+      </div>
+
+      <!-- 正式資安新人結訓證書 (主管簽名蓋章證明書) -->
+      <div class="certificate-wrapper" id="print-certificate">
+        <div class="cert-header">
+          <div class="cert-badge">JJNET CYBER DEFENSE ACADEMY</div>
+          <div class="cert-title">資安新人教育訓練結訓證明書</div>
+          <div style="font-size:0.9rem; color:#64748b; margin-top:4px;">CERTIFICATE OF CYBERSECURITY TRAINING COMPLETION</div>
+        </div>
+
+        <div class="cert-body">
+          <p style="text-indent:2rem; margin-bottom:1.5rem;">
+            茲證明新進同仁 <strong style="font-size:1.25rem; color:#0284c7; border-bottom:1.5px solid #0284c7; padding:0 8px;" id="cert-trainee-name">王大明</strong>
+            （工號：<span id="cert-trainee-id">JN-8812</span>，所屬部門：<span id="cert-trainee-dept">資安維運部</span>），
+            已於本年度確實完成規範之資安專業職能課綱培訓，通過線上情境實戰演練與嚴格評量考核，成績優異准予結訓。
+          </p>
+
+          <table class="cert-table">
+            <tr>
+              <th>結訓訓練章節</th>
+              <td colspan="3" id="cert-chapter">社交工程與憑證防竊實務</td>
+            </tr>
+            <tr>
+              <th>課綱版本字號</th>
+              <td><code id="cert-version">TRAIN-2026-CH01-v1.0</code></td>
+              <th>評量測驗成績</th>
+              <td><strong style="color:#059669; font-size:1.15rem;" id="cert-score">100 分 (合格)</strong></td>
+            </tr>
+            <tr>
+              <th>RAG 知識依據</th>
+              <td>JJNET 企業資安規範</td>
+              <th>主管簽核狀態</th>
+              <td><span id="cert-sign-status" style="color:#0284c7; font-weight:700;">已核准完訓</span></td>
+            </tr>
+            <tr>
+              <th>主管審核考語</th>
+              <td colspan="3" id="cert-comment">該員已確實完成教材研讀與評量，具備基礎資安威脅鑑別能力，准予結訓。</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="cert-footer">
+          <div>
+            <div style="font-size:0.9rem; color:#64748b;">發證單位：JJNET 資訊安全運籌維運處</div>
+            <div style="font-size:0.85rem; color:#64748b; margin-top:4px;">驗證序號：<code id="cert-uuid">JN-SEC-202609-CERT-01</code></div>
+            <div style="font-size:0.85rem; color:#64748b; margin-top:4px;">簽發日期：<span id="cert-date">2026 年 09 月 20 日</span></div>
+          </div>
+
+          <!-- 視覺化數位簽核章 -->
+          <div class="cert-seal" id="cert-seal-box">
+            <div style="font-size:0.75rem; letter-spacing:1px;">JJNET CISO</div>
+            <div style="font-size:1.05rem; font-weight:900; margin:2px 0;">核准通過</div>
+            <div style="font-size:0.7rem;" id="cert-seal-name">資安專用章</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="training.js"></script>
+</body>
+</html>
