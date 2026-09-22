@@ -23,8 +23,17 @@ if sys.platform == 'win32':
     except Exception:
         pass
 
-PROJECT_DIR = Path(__file__).resolve().parent
+if getattr(sys, 'frozen', False):
+    PROJECT_DIR = Path(sys.executable).resolve().parent
+    BUNDLE_DIR = Path(sys._MEIPASS)
+else:
+    PROJECT_DIR = Path(__file__).resolve().parent
+    BUNDLE_DIR = PROJECT_DIR
+
 TEMPLATE_PATH = PROJECT_DIR / "templates" / "JJNET_Incident_Report_Template.docx"
+if not TEMPLATE_PATH.exists():
+    TEMPLATE_PATH = BUNDLE_DIR / "templates" / "JJNET_Incident_Report_Template.docx"
+
 OUTPUTS_DIR = PROJECT_DIR / "outputs"
 INCOMING_DIR = PROJECT_DIR / "incoming_logs"
 
