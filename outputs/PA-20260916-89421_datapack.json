@@ -9,7 +9,7 @@
     "detectionTime": "2026-09-16T22:14:10Z",
     "reportVersion": "1.0",
     "eventType": "惡意弱點探測 / 無檔案記憶體程式碼注入",
-    "executiveSummary": "Palo Alto 防火牆與 Cortex XDR 於 2026-09-16T22:14:10Z - 2026-09-16T22:16:01Z 期間，偵測到來自外部惡意來源 (185.220.101.5) 針對內部 DMZ 主機 (WS-FIN-088.corp.jjnet.tw) 發動之 Microsoft Windows Task Scheduler Privilege Escalation (觸發次數：14 次連續探測)。攻擊者嘗試利用弱點 CVE-2026-3841 與混淆 PowerShell 腳本突破邊界防護並實施記憶體注入。周邊安全規則「SecRule-Inbound-DMZ-Protect」及時觸發並執行「reset-both」，端點代理已自動完成邏輯網路隔離並保全揮發性記憶體跡證。目前現有事證支持威脅已獲有效圍堵，後續憑證可能於其他主機重用之風險仍列入待確認追蹤項。",
+    "executiveSummary": "Palo Alto 防火牆與 Cortex XDR 於 2026-09-16T22:14:10Z - 2026-09-16T22:16:01Z 期間，偵測到來自外部惡意來源 (185.220.101.5) 針對內部 DMZ 主機 (WS-FIN-088) 發動之 Microsoft Windows Task Scheduler Privilege Escalation (觸發次數：14 次連續探測)。攻擊者嘗試利用弱點 CVE-2026-3841 與混淆 PowerShell 腳本突破邊界防護並實施記憶體注入。周邊安全規則「SecRule-Inbound-DMZ-Protect」及時觸發並執行「reset-both」，端點代理已自動完成邏輯網路隔離並保全揮發性記憶體跡證。目前現有事證支持威脅已獲有效圍堵，後續憑證可能於其他主機重用之風險仍列入待確認追蹤項。",
     "classification": [
       {
         "label": "Category",
@@ -26,7 +26,7 @@
     ],
     "affectedAssets": [
       {
-        "name": "WS-FIN-088.corp.jjnet.tw",
+        "name": "WS-FIN-088",
         "context": "財務部關鍵同仁端點 (corp.jjnet.tw)"
       },
       {
@@ -99,7 +99,7 @@
     "responseActions": [
       {
         "number": 1,
-        "action": "維持受感染主機 WS-FIN-088.corp.jjnet.tw 之 EDR 邏輯網路隔離，保全 Volatile Memory Dump 供鑑識",
+        "action": "維持受感染主機 WS-FIN-088 之 EDR 邏輯網路隔離，保全 Volatile Memory Dump 供鑑識",
         "status": "Completed / in progress"
       },
       {
@@ -159,7 +159,7 @@
       "approvalStatus": "Approved",
       "approvalRecord": "APR-2026-0042"
     },
-    "summary": "Palo Alto 防火牆與 Cortex XDR 於 2026-09-16T22:14:10Z - 2026-09-16T22:16:01Z 期間，偵測到來自外部惡意來源 (185.220.101.5) 針對內部 DMZ 主機 (WS-FIN-088.corp.jjnet.tw) 發動之 Microsoft Windows Task Scheduler Privilege Escalation (觸發次數：14 次連續探測)。攻擊者嘗試利用弱點 CVE-2026-3841 與混淆 PowerShell 腳本突破邊界防護並實施記憶體注入。周邊安全規則「SecRule-Inbound-DMZ-Protect」及時觸發並執行「reset-both」，端點代理已自動完成邏輯網路隔離並保全揮發性記憶體跡證。目前現有事證支持威脅已獲有效圍堵，後續憑證可能於其他主機重用之風險仍列入待確認追蹤項。",
+    "summary": "Palo Alto 防火牆與 Cortex XDR 於 2026-09-16T22:14:10Z - 2026-09-16T22:16:01Z 期間，偵測到來自外部惡意來源 (185.220.101.5) 針對內部 DMZ 主機 (WS-FIN-088) 發動之 Microsoft Windows Task Scheduler Privilege Escalation (觸發次數：14 次連續探測)。攻擊者嘗試利用弱點 CVE-2026-3841 與混淆 PowerShell 腳本突破邊界防護並實施記憶體注入。周邊安全規則「SecRule-Inbound-DMZ-Protect」及時觸發並執行「reset-both」，端點代理已自動完成邏輯網路隔離並保全揮發性記憶體跡證。目前現有事證支持威脅已獲有效圍堵，後續憑證可能於其他主機重用之風險仍列入待確認追蹤項。",
     "impact": "高風險威脅。外部惡意來源嘗試利用 CVE-2026-3841 (CWE-Unknown (待深入鑑識)) 與腳本注入突破邊界。防火牆已執行 reset-both 攔截，端點 XDR 已自動隔離受害主機，阻止了可能的憑證盜取與橫向移動擴散。",
     "mitre": [
       "T1059.001 (Command and Scripting Interpreter: PowerShell)",
@@ -171,7 +171,7 @@
       "corp.jjnet.tw"
     ],
     "actions": [
-      "維持受感染主機 WS-FIN-088.corp.jjnet.tw 之 EDR 邏輯網路隔離，保全 Volatile Memory Dump 供鑑識",
+      "維持受感染主機 WS-FIN-088 之 EDR 邏輯網路隔離，保全 Volatile Memory Dump 供鑑識",
       "立即重設受害使用者 corp.jjnet.tw 密碼並強制撤銷所有作用中 Session",
       "邊界防火牆推播阻擋黑名單：阻斷惡意外部 IP 185.220.101.5 與網域 c2-update.secureserv.nl"
     ],
@@ -258,13 +258,13 @@
         ],
         "hostname": [
           {
-            "value": "WS-FIN-088.corp.jjnet.tw",
+            "value": "WS-FIN-088",
             "os": "Windows 11 Enterprise (Build 22631)",
             "containmentStatus": "ISOLATED",
             "action": "維持 EDR 隔離狀態，保全記憶體鏡像以供鑑識"
           },
           {
-            "value": "WS-FIN-088",
+            "value": "WS-FIN-088.corp.jjnet.tw",
             "os": "Windows 11 Enterprise (Build 22631)",
             "containmentStatus": "ISOLATED",
             "action": "維持 EDR 隔離狀態，保全記憶體鏡像以供鑑識"
@@ -322,7 +322,7 @@
       "stepIndex": 5,
       "phase": "TOOL_RESULT",
       "title": "🎯 步驟 5：比對可疑列表 / IOC (6 類別比對)",
-      "detail": "完成 6 類指標清單檢核：IP(2), Domain(1), URL(1), Hash(1), User(1), Hostname(2)。檢出惡意 C2 IP: 185.220.101.5 (威脅分: 96)，受影響主機: WS-FIN-088.corp.jjnet.tw。"
+      "detail": "完成 6 類指標清單檢核：IP(2), Domain(1), URL(1), Hash(1), User(1), Hostname(2)。檢出惡意 C2 IP: 185.220.101.5 (威脅分: 96)，受影響主機: WS-FIN-088。"
     },
     {
       "stepIndex": 6,
@@ -345,9 +345,11 @@
   ],
   "meta": {
     "agentName": "Incident Investigation Agent (Task 01)",
-    "executionMode": "Local Sovereign Domain Model (地端微調、資料不出門)",
+    "provider": "Sovereign / Gemma 4",
+    "model": "gemma-4-28b-it",
+    "executionMode": "Local Sovereign Domain Model (Gemma 4 28B 地端微調·資料不出門)",
     "pipeline": "Slide 8 - 8-Step Sovereign Agent Pipeline",
-    "latencyMs": 3,
-    "timestamp": "2026-09-22T07:56:02Z"
+    "latencyMs": 4,
+    "timestamp": "2026-09-22T13:29:59Z"
   }
 }

@@ -6,7 +6,7 @@ compatibility_date = "2024-09-01"
 [vars]
 AI_PROVIDER = "unieai"               # 可切換為 "unieai" 或 "gemini"
 UNIEAI_BASE_URL = "https://api.unieai.com/v1"
-UNIEAI_MODEL = "gemma-4-E4B-it"      # 依規格指定之模型
+UNIEAI_MODEL = "gemma-4-28b-it"      # 依規格指定之 Gemma 4 28B 模型
 GEMINI_MODEL = "gemini-1.5-flash"
 
 # 重要：機密金鑰不可在此檔案明文儲存！

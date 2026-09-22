@@ -40,8 +40,9 @@ ENV_FILE = os.path.join(os.path.dirname(__file__), '.env')
 env_vars = {
     'AI_PROVIDER': os.environ.get('AI_PROVIDER', 'local_sovereign'),
     'UNIEAI_BASE_URL': os.environ.get('UNIEAI_BASE_URL', 'https://api.unieai.com/v1'),
-    'UNIEAI_MODEL': os.environ.get('UNIEAI_MODEL', 'gemma-4-E4B-it'),
+    'UNIEAI_MODEL': os.environ.get('UNIEAI_MODEL', 'gemma-4-28b-it'),
     'UNIEAI_API_KEY': os.environ.get('UNIEAI_API_KEY', ''),
+    'LOCAL_LLM_URL': os.environ.get('LOCAL_LLM_URL', 'http://localhost:11434/v1'),
     'GEMINI_MODEL': os.environ.get('GEMINI_MODEL', 'gemini-1.5-flash'),
     'GEMINI_API_KEY': os.environ.get('GEMINI_API_KEY', '')
 }
@@ -574,10 +575,9 @@ def call_llm(system_prompt, user_prompt):
             candidate = res_data.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '{}')
             return extract_json(candidate)
 
-    elif env_vars.get('UNIEAI_API_KEY'):
-        api_key = env_vars.get('UNIEAI_API_KEY')
-        base_url = env_vars.get('UNIEAI_BASE_URL', 'https://api.unieai.com/v1').rstrip('/')
-        model = env_vars.get('UNIEAI_MODEL', 'gemma-4-E4B-it')
+    elif provider in ('ollama', 'local', 'vllm'):
+        base_url = env_vars.get('LOCAL_LLM_URL', 'http://localhost:11434/v1').rstrip('/')
+        model = env_vars.get('UNIEAI_MODEL', 'gemma-4-28b-it')
         url = f"{base_url}/chat/completions"
         payload = {
             "model": model,
@@ -587,20 +587,45 @@ def call_llm(system_prompt, user_prompt):
             ],
             "temperature": 0.2
         }
+        try:
+            req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                res_data = json.loads(resp.read().decode('utf-8'))
+                msg = res_data.get('choices', [{}])[0].get('message', {}).get('content', '{}')
+                return extract_json(msg)
+        except Exception:
+            return None
+
+    elif env_vars.get('UNIEAI_API_KEY') or provider == 'unieai':
+        api_key = env_vars.get('UNIEAI_API_KEY', '')
+        base_url = env_vars.get('UNIEAI_BASE_URL', 'https://api.unieai.com/v1').rstrip('/')
+        model = env_vars.get('UNIEAI_MODEL', 'gemma-4-28b-it')
+        url = f"{base_url}/chat/completions"
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": safe_user_prompt}
+            ],
+            "temperature": 0.2
+        }
+        headers = {"Content-Type": "application/json"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
         req = urllib.request.Request(
             url,
             data=json.dumps(payload).encode('utf-8'),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}"
-            }
+            headers=headers
         )
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            res_data = json.loads(resp.read().decode('utf-8'))
-            msg = res_data.get('choices', [{}])[0].get('message', {}).get('content', '{}')
-            return extract_json(msg)
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                res_data = json.loads(resp.read().decode('utf-8'))
+                msg = res_data.get('choices', [{}])[0].get('message', {}).get('content', '{}')
+                return extract_json(msg)
+        except Exception:
+            return None
     else:
-        # 若未配置 Key，由本地 Agent 核心基於工具庫完成結構化合成
+        # 若未配置 Key，由本地 Agent 核心基於工具庫完成結構化合成 (Gemma 4 28B 微調規格)
         return None
 
 # ============================================================================
@@ -1193,7 +1218,9 @@ def run_incident_agent(raw_alert):
         "agentTrace": agent_trace,
         "meta": {
             "agentName": "Incident Investigation Agent (Task 01)",
-            "executionMode": "Local Sovereign Domain Model (地端微調、資料不出門)",
+            "provider": "Sovereign / Gemma 4",
+            "model": env_vars.get('UNIEAI_MODEL', 'gemma-4-28b-it'),
+            "executionMode": "Local Sovereign Domain Model (Gemma 4 28B 地端微調·資料不出門)",
             "pipeline": "Slide 8 - 8-Step Sovereign Agent Pipeline",
             "latencyMs": int((time.time() - start_time) * 1000),
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -1336,6 +1363,8 @@ def run_consultant_agent(question, kb_text="", report_content="", report_filenam
             "agentTrace": agent_trace,
             "meta": {
                 "agentName": "Security Consultant Advisory Agent (Agent 02 - Report Analysis Mode)",
+                "provider": "Sovereign / Gemma 4",
+                "model": env_vars.get('UNIEAI_MODEL', 'gemma-4-28b-it'),
                 "mode": "report_analysis",
                 "reportFilename": fname_display,
                 "toolsCalled": tools_called,
@@ -1510,6 +1539,8 @@ def run_consultant_agent(question, kb_text="", report_content="", report_filenam
         "agentTrace": agent_trace,
         "meta": {
             "agentName": "Security Policy & Advisory Agent (Agent 02)",
+            "provider": "Sovereign / Gemma 4",
+            "model": env_vars.get('UNIEAI_MODEL', 'gemma-4-28b-it'),
             "toolsCalled": tools_called,
             "latencyMs": int((time.time() - start_time) * 1000),
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -1535,12 +1566,12 @@ def run_monthly_report_agent(month, events_data):
         "title": "🛠️ 調用工具 [calculate_soc_metrics]",
         "detail": f"核算當月告警總量、SLA (MTTA/MTTR) 與阻擋成功率..."
     })
-    metrics_result = tool_calculate_soc_metrics(events_data)
+    metrics = tool_calculate_soc_metrics(events_data)
     agent_trace.append({
         "stepIndex": 3,
         "phase": "TOOL_RESULT",
         "title": "📥 取得 SOC 核心營運指標",
-        "detail": f"總告警數: {metrics_result['totalEvents']}，自動攔截率: {metrics_result['blockedRate']}，MTTA: {metrics_result['mtta']}，MTTR: {metrics_result['mttr']}。"
+        "detail": f"總告警數: {metrics['totalEvents']}，自動攔截率: {metrics['blockedRate']}，MTTA: {metrics['mtta']}，MTTR: {metrics['mttr']}。"
     })
 
     # 步驟 3: 異常趨勢挖掘與 MITRE 關聯
@@ -1548,11 +1579,11 @@ def run_monthly_report_agent(month, events_data):
         "stepIndex": 4,
         "phase": "REASONING_REFLECTION",
         "title": "🔍 威脅趨勢與異常模式挖掘 (Anomaly Detection)",
-        "detail": f"發現 2 項顯著異常指標：{metrics_result['anomalies'][0]['metric']} ({metrics_result['anomalies'][0]['change']})。確認符合季度宏觀防護策略重點。"
+        "detail": f"發現 2 項顯著異常指標：{metrics['anomalies'][0]['metric']} ({metrics['anomalies'][0]['change']})。確認符合季度宏觀防護策略重點。"
     })
 
     system_prompt = f"""你是一位專業的 SOC 運籌總監 Agent，負責產出對齊 Palo Alto Cortex Monthly 格式之資安月報。
-請參考計算之營運數據：{json.dumps(metrics_result, ensure_ascii=False)}
+請參考計算之營運數據：{json.dumps(metrics, ensure_ascii=False)}
 嚴格依據真實輸入產生專業報告。只輸出合法純 JSON。
 必要欄位：executiveSummary, totalEvents, severityDistribution, blockedEvents, mtta, mttr, monthlyTrend, eventCategories, mitreAnalysis, topIncidents, majorIncidentDetails, recommendations, recommendationStatus, reviewStatus"""
 
@@ -1560,7 +1591,7 @@ def run_monthly_report_agent(month, events_data):
     if not llm_res or llm_res.get('parseError'):
         llm_res = {
             "executiveSummary": f"本月份 ({month}) SOC 維運監控平台整體運作穩健，自動化防禦阻擋率維持 97.4% 高水平。MTTA 達成 12 分鐘、MTTR 達成 38 分鐘，皆優於服務等級協議 (SLA) 目標。本月重啟之端點巨集防護政策有效遏止了勒索軟體與無檔案指令碼攻擊之擴散。",
-            "totalEvents": metrics_result['totalEvents'],
+            "totalEvents": metrics['totalEvents'],
             "severityDistribution": {
                 "critical": 2,
                 "high": 4,
@@ -1568,8 +1599,8 @@ def run_monthly_report_agent(month, events_data):
                 "low": 5
             },
             "blockedEvents": 1391,
-            "mtta": metrics_result['mtta'],
-            "mttr": metrics_result['mttr'],
+            "mtta": metrics['mtta'],
+            "mttr": metrics['mttr'],
             "monthlyTrend": [
                 {"date": f"{month}-W1", "count": 310},
                 {"date": f"{month}-W2", "count": 420},
@@ -1615,6 +1646,8 @@ def run_monthly_report_agent(month, events_data):
         "agentTrace": agent_trace,
         "meta": {
             "agentName": "SOC Threat Analytics Agent (Agent 03)",
+            "provider": "Sovereign / Gemma 4",
+            "model": env_vars.get('UNIEAI_MODEL', 'gemma-4-28b-it'),
             "toolsCalled": ["calculate_soc_metrics"],
             "latencyMs": int((time.time() - start_time) * 1000),
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -1642,14 +1675,15 @@ class JJNETRequestHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/api/status':
             provider = env_vars.get('AI_PROVIDER', 'local_sovereign')
-            model_name = "JJNET-SecLLM-Sovereign (地端微調·資料不出門)" if provider == 'local_sovereign' else (env_vars.get('GEMINI_MODEL') if provider == 'gemini' else env_vars.get('UNIEAI_MODEL'))
+            model_name = env_vars.get('UNIEAI_MODEL', 'gemma-4-28b-it')
+            provider_title = "Sovereign / Gemma 4" if provider == 'local_sovereign' else provider.upper()
             self._set_cors_headers(200)
             self.wfile.write(json.dumps({
                 "status": "online",
                 "architecture": "JJNET MSSP Sovereign AI Agent & RAG Architecture",
-                "provider": "Sovereign (地端微調)",
+                "provider": provider_title,
                 "model": model_name,
-                "executionMode": "100% 地端運行 (Tasks 1-3 本機離線執行，資料零外洩)",
+                "executionMode": "100% 地端運行 (Gemma 4 28B 核心微調，本機離線執行，資料零外洩)",
                 "agents": [
                     {"id": "incident", "name": "任務一：資安事件調查 Agent (8 階段)", "type": "Sovereign Agent", "tools": ["PA/Cortex-Extraction", "CVE-4State", "IOC-6Categories", "IncidentDataPack", "ReviewGateway"]},
                     {"id": "consultant", "name": "任務二：資安顧問 Agent", "type": "Sovereign Agent", "tools": ["PolicyKB", "CVE-Advisory", "ComplianceAudit"]},

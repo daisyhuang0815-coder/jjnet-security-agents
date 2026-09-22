@@ -138,7 +138,7 @@ async function callAI(env, systemPrompt, userPrompt) {
       throw new Error('未設定 UNIEAI_API_KEY 環境變數或 Secret。');
     }
     const baseURL = env.UNIEAI_BASE_URL || 'https://api.unieai.com/v1';
-    modelName = env.UNIEAI_MODEL || 'gemma-4-E4B-it';
+    modelName = env.UNIEAI_MODEL || 'gemma-4-28b-it';
     const url = `${baseURL.replace(/\/+$/, '')}/chat/completions`;
 
     const payload = {
@@ -388,7 +388,7 @@ export default {
       const provider = env.AI_PROVIDER || 'unieai';
       const model = provider === 'gemini' 
         ? (env.GEMINI_MODEL || 'gemini-1.5-flash') 
-        : (env.UNIEAI_MODEL || 'gemma-4-E4B-it');
+        : (env.UNIEAI_MODEL || 'gemma-4-28b-it');
 
       return new Response(JSON.stringify({
         status: 'online',
