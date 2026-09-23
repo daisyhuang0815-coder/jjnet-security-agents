@@ -69,7 +69,7 @@ def print_banner():
     banner = f"""{CYAN}{BOLD}
 ================================================================================
           🛡️  JJNET MSSP SOVEREIGN CYBERSECURITY AI AGENT (CLI)  🛡️
-         核心模型: Gemma 4 28B (地端微調·資料零外洩) · 內嵌官方範本浮水印
+         核心模型: Gemma 4 31B (gemma-4-31B-it · UnieAI / Sovereign 雙軌) · 內嵌官方範本浮水印
 ================================================================================{RESET}"""
     print(banner)
 
