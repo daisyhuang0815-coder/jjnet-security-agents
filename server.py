@@ -38,22 +38,29 @@ PUBLIC_DIR = os.path.join(os.path.dirname(__file__), 'public')
 # 載入 .env 設定
 ENV_FILE = os.path.join(os.path.dirname(__file__), '.env')
 env_vars = {
-    'AI_PROVIDER': os.environ.get('AI_PROVIDER', 'local_sovereign'),
+    'AI_PROVIDER': os.environ.get('AI_PROVIDER', 'unieai'),
     'UNIEAI_BASE_URL': os.environ.get('UNIEAI_BASE_URL', 'https://api.unieai.com/v1'),
-    'UNIEAI_MODEL': os.environ.get('UNIEAI_MODEL', 'gemma-4-28b-it'),
+    'UNIEAI_MODEL': os.environ.get('UNIEAI_MODEL', 'gemma-4-31B-it'),
     'UNIEAI_API_KEY': os.environ.get('UNIEAI_API_KEY', ''),
     'LOCAL_LLM_URL': os.environ.get('LOCAL_LLM_URL', 'http://localhost:11434/v1'),
     'GEMINI_MODEL': os.environ.get('GEMINI_MODEL', 'gemini-1.5-flash'),
     'GEMINI_API_KEY': os.environ.get('GEMINI_API_KEY', '')
 }
 
-if os.path.exists(ENV_FILE):
-    with open(ENV_FILE, 'r', encoding='utf-8') as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith('#') and '=' in line:
-                k, v = line.split('=', 1)
-                env_vars[k.strip()] = v.strip().strip('"').strip("'")
+def reload_env():
+    global env_vars
+    if os.path.exists(ENV_FILE):
+        try:
+            with open(ENV_FILE, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        k, v = line.split('=', 1)
+                        env_vars[k.strip()] = v.strip().strip('"').strip("'")
+        except Exception:
+            pass
+
+reload_env()
 
 # ============================================================================
 # 資安敏感資訊遮罩工具
@@ -557,6 +564,7 @@ def tool_calculate_soc_metrics(raw_data):
 # AI 模型呼叫 (底層 LLM 執行引擎)
 # ============================================================================
 def call_llm(system_prompt, user_prompt):
+    reload_env()
     provider = env_vars.get('AI_PROVIDER', 'unieai').lower()
     safe_user_prompt = mask_sensitive_data(user_prompt)
 
@@ -577,7 +585,7 @@ def call_llm(system_prompt, user_prompt):
 
     elif provider in ('ollama', 'local', 'vllm'):
         base_url = env_vars.get('LOCAL_LLM_URL', 'http://localhost:11434/v1').rstrip('/')
-        model = env_vars.get('UNIEAI_MODEL', 'gemma-4-28b-it')
+        model = env_vars.get('UNIEAI_MODEL', 'gemma-4-31B-it')
         url = f"{base_url}/chat/completions"
         payload = {
             "model": model,
@@ -599,7 +607,7 @@ def call_llm(system_prompt, user_prompt):
     elif env_vars.get('UNIEAI_API_KEY') or provider == 'unieai':
         api_key = env_vars.get('UNIEAI_API_KEY', '')
         base_url = env_vars.get('UNIEAI_BASE_URL', 'https://api.unieai.com/v1').rstrip('/')
-        model = env_vars.get('UNIEAI_MODEL', 'gemma-4-28b-it')
+        model = env_vars.get('UNIEAI_MODEL', 'gemma-4-31B-it')
         url = f"{base_url}/chat/completions"
         payload = {
             "model": model,
@@ -622,10 +630,11 @@ def call_llm(system_prompt, user_prompt):
                 res_data = json.loads(resp.read().decode('utf-8'))
                 msg = res_data.get('choices', [{}])[0].get('message', {}).get('content', '{}')
                 return extract_json(msg)
-        except Exception:
+        except Exception as e:
+            print(f"[LLM] UnieAI call exception: {e}")
             return None
     else:
-        # 若未配置 Key，由本地 Agent 核心基於工具庫完成結構化合成 (Gemma 4 28B 微調規格)
+        # 若未配置 Key，由本地 Agent 核心基於工具庫完成結構化合成 (Gemma 4 31B 微調規格)
         return None
 
 # ============================================================================
@@ -1218,9 +1227,9 @@ def run_incident_agent(raw_alert):
         "agentTrace": agent_trace,
         "meta": {
             "agentName": "Incident Investigation Agent (Task 01)",
-            "provider": "Sovereign / Gemma 4",
-            "model": env_vars.get('UNIEAI_MODEL', 'gemma-4-28b-it'),
-            "executionMode": "Local Sovereign Domain Model (Gemma 4 28B 地端微調·資料不出門)",
+            "provider": "UnieAI / Gemma 4" if env_vars.get('UNIEAI_API_KEY') else "Sovereign / Gemma 4",
+            "model": env_vars.get('UNIEAI_MODEL', 'gemma-4-31B-it'),
+            "executionMode": f"Gemma 4 31B ({env_vars.get('UNIEAI_MODEL', 'gemma-4-31B-it')}) · 官方雙盾牌浮水印與11節標準鑑識",
             "pipeline": "Slide 8 - 8-Step Sovereign Agent Pipeline",
             "latencyMs": int((time.time() - start_time) * 1000),
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -1363,8 +1372,8 @@ def run_consultant_agent(question, kb_text="", report_content="", report_filenam
             "agentTrace": agent_trace,
             "meta": {
                 "agentName": "Security Consultant Advisory Agent (Agent 02 - Report Analysis Mode)",
-                "provider": "Sovereign / Gemma 4",
-                "model": env_vars.get('UNIEAI_MODEL', 'gemma-4-28b-it'),
+                "provider": "UnieAI / Gemma 4" if env_vars.get('UNIEAI_API_KEY') else "Sovereign / Gemma 4",
+                "model": env_vars.get('UNIEAI_MODEL', 'gemma-4-31B-it'),
                 "mode": "report_analysis",
                 "reportFilename": fname_display,
                 "toolsCalled": tools_called,
@@ -1539,8 +1548,8 @@ def run_consultant_agent(question, kb_text="", report_content="", report_filenam
         "agentTrace": agent_trace,
         "meta": {
             "agentName": "Security Policy & Advisory Agent (Agent 02)",
-            "provider": "Sovereign / Gemma 4",
-            "model": env_vars.get('UNIEAI_MODEL', 'gemma-4-28b-it'),
+            "provider": "UnieAI / Gemma 4" if env_vars.get('UNIEAI_API_KEY') else "Sovereign / Gemma 4",
+            "model": env_vars.get('UNIEAI_MODEL', 'gemma-4-31B-it'),
             "toolsCalled": tools_called,
             "latencyMs": int((time.time() - start_time) * 1000),
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -1646,8 +1655,8 @@ def run_monthly_report_agent(month, events_data):
         "agentTrace": agent_trace,
         "meta": {
             "agentName": "SOC Threat Analytics Agent (Agent 03)",
-            "provider": "Sovereign / Gemma 4",
-            "model": env_vars.get('UNIEAI_MODEL', 'gemma-4-28b-it'),
+            "provider": "UnieAI / Gemma 4" if env_vars.get('UNIEAI_API_KEY') else "Sovereign / Gemma 4",
+            "model": env_vars.get('UNIEAI_MODEL', 'gemma-4-31B-it'),
             "toolsCalled": ["calculate_soc_metrics"],
             "latencyMs": int((time.time() - start_time) * 1000),
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -1674,16 +1683,25 @@ class JJNETRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == '/api/status':
-            provider = env_vars.get('AI_PROVIDER', 'local_sovereign')
-            model_name = env_vars.get('UNIEAI_MODEL', 'gemma-4-28b-it')
-            provider_title = "Sovereign / Gemma 4" if provider == 'local_sovereign' else provider.upper()
+            reload_env()
+            provider = env_vars.get('AI_PROVIDER', 'unieai').lower()
+            model_name = env_vars.get('UNIEAI_MODEL', 'gemma-4-31B-it')
+            if provider == 'unieai' or env_vars.get('UNIEAI_API_KEY'):
+                provider_title = "UnieAI / Gemma 4"
+                exec_mode = f"連線至 UnieAI Studio 專屬推理端點 ({model_name})"
+            elif provider == 'local_sovereign':
+                provider_title = "Sovereign / Gemma 4"
+                exec_mode = f"100% 地端運行 ({model_name} 核心微調，本機離線執行，資料零外洩)"
+            else:
+                provider_title = provider.upper()
+                exec_mode = f"{provider_title} 推理模式 ({model_name})"
             self._set_cors_headers(200)
             self.wfile.write(json.dumps({
                 "status": "online",
                 "architecture": "JJNET MSSP Sovereign AI Agent & RAG Architecture",
                 "provider": provider_title,
                 "model": model_name,
-                "executionMode": "100% 地端運行 (Gemma 4 28B 核心微調，本機離線執行，資料零外洩)",
+                "executionMode": exec_mode,
                 "agents": [
                     {"id": "incident", "name": "任務一：資安事件調查 Agent (8 階段)", "type": "Sovereign Agent", "tools": ["PA/Cortex-Extraction", "CVE-4State", "IOC-6Categories", "IncidentDataPack", "ReviewGateway"]},
                     {"id": "consultant", "name": "任務二：資安顧問 Agent", "type": "Sovereign Agent", "tools": ["PolicyKB", "CVE-Advisory", "ComplianceAudit"]},
